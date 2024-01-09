@@ -1,56 +1,29 @@
 const WebSocket = require('ws');
-const http = require('http');
 
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('WebSocket Server\n');
-});
+const wss = new WebSocket.Server({ port: 8080 });
 
-const wss = new WebSocket.Server({ server });
+let onlineUsersCount = 1339; // Khởi tạo số người trực tuyến với giá trị tối thiểu là 1339
 
-let adminURL = 'https://boc8.fun/kubet/?v=1696501051387'; 
-
-const connectedClients = new Set();
-
-function getAdminURL() {
-    return adminURL;
-}
-
-function setAdminURL(newURL) {
-    adminURL = newURL;
-
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            const urlStr = adminURL.toString();
-            client.send(urlStr);
-        }
-    });
-}
+let onlineUsersCount = 0;
 
 wss.on('connection', (ws) => {
-    console.log('Client connected');
+  // Khi có một kết nối WebSocket mới, tăng số người trực tuyến và gửi nó cho tất cả máy khách
+  onlineUsersCount++;
+  broadcastOnlineUsersCount();
 
-    connectedClients.add(ws);
-    ws.send(adminURL.toString());
-
-    ws.on('message', (url) => {
-        console.log(`Received URL: ${url}`);
-        setAdminURL(url);
-    });
-
-    ws.on('close', () => {
-        console.log('Client disconnected');
-        connectedClients.delete(ws);
-    });
+  ws.on('close', () => {
+    // Khi một kết nối bị đóng, giảm số người trực tuyến và gửi nó cho tất cả máy khách
+    onlineUsersCount--;
+    broadcastOnlineUsersCount();
+  });
 });
 
-server.listen(8080, () => {
-    console.log('WebSocket server is listening on port 8080');
+function broadcastOnlineUsersCount() {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({ onlineUsersCount }));
+    }
+  });
+}
 
-    connectedClients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            const urlStr = adminURL.toString();
-            client.send(urlStr);
-        }
-    });
-});
+console.log('WebSocket server is running on port 808
