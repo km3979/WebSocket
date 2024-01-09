@@ -1,42 +1,34 @@
 const WebSocket = require('ws');
+const express = require('express');
+const cors = require('cors'); // Thêm thư viện Cors
 
-const wss = new WebSocket.Server({ port: 8080 });
+const app = express();
 
-let onlineUsersCount = 1339; // Khởi tạo số người trực tuyến với giá trị tối thiểu là 1339
+// Cấu hình Cors Policy
+const corsOptions = {
+  origin: 'https://example.com', // Đặt nguồn bạn muốn cho phép truy cập
+  methods: 'GET,POST', // Cấu hình các phương thức được phép
+  credentials: true, // Cho phép gửi thông tin xác thực (nếu cần)
+};
 
-wss.on('connection', (ws) => {
-  // Khi có một kết nối WebSocket mới, gửi số người trực tuyến hiện tại cho máy khách
-  sendOnlineUsersCount(ws);
+// Sử dụng Cors Middleware
+app.use(cors(corsOptions));
 
-  ws.on('message', (message) => {
-    // Xử lý yêu cầu từ máy khách
-    if (message === 'getOnlineUsersCount') {
-      // Nếu máy khách yêu cầu số người trực tuyến, gửi lại số người trực tuyến hiện tại cho máy khách
-      sendOnlineUsersCount(ws);
-    } else {
-      // Xử lý các yêu cầu khác nếu cần
-    }
-  });
+// Tạo máy chủ WebSocket
+const wss = new WebSocket.Server({ noServer: true });
 
-  ws.on('close', () => {
-    // Khi một kết nối bị đóng, không cần làm gì cả vì chúng ta không theo dõi kết nối từ bên ngoài
-  });
+// Rest của mã của máy chủ WebSocket
+
+// Kết nối máy chủ WebSocket với máy chủ HTTP
+const server = app.listen(8080, () => {
+  console.log('WebSocket server is running on port 8080');
 });
 
-function broadcastOnlineUsersCount() {
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({ onlineUsersCount }));
-    }
+server.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
   });
-}
-
-function sendOnlineUsersCount(client) {
-  // Gửi số người trực tuyến hiện tại cho máy khách
-  client.send(JSON.stringify({ onlineUsersCount }));
-}
-
-console.log('WebSocket server is running on port 8080');
+});
 
 // Logic tăng/giảm số người trực tuyến sau một khoảng thời gian
 setInterval(() => {
