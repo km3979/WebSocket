@@ -1,34 +1,41 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8"/>
-    <script src="https://softvelum.com/player/releases/sldp-v2.17.5.min.js"></script>
-  </head>
-  <body>
-    <div id="player"></div>
+// wsServer.js
+const WebSocket = require('ws');
 
-    <script type="text/javascript">
-      document.addEventListener("DOMContentLoaded", initPlayer);
+const wss = new WebSocket.Server({ port: 8080 });
 
-      function initPlayer(){
-        sldpPlayer = SLDP.init({
-          container:           'player',
-          stream_url:          'wss://gcphkmgtm.vnkuvideo.com:8881//apps/13Z8iYf6DzV-ctGDrdPaTA/1706325833/fsd0112',
-          adaptive_bitrate: {
-            initial_rendition: '730p'
-          },
-          buffering:           500,
-          autoplay:            true,
-          width:               1240,
-          height:              720,
-        });
-      };
+let numbers = [8, 8, 8, 8, 1, 6, 7, 2];
 
-      function removePlayer(){
-        sldpPlayer.destroy(function () {
-          console.log('SLDP Player is destroyed.');
-        });
-      }
-    </script>
-  </body>
-</html>
+const updateNumbers = () => {
+    for (let i = numbers.length - 3; i < numbers.length; i++) {
+        const increment = Math.floor(Math.random() * 3) + 1;
+        numbers[i] += increment;
+        if (numbers[i] > 9) {
+            numbers[i] = numbers[i] % 10;
+            // Propagate the carry-over to the previous digits
+            for (let j = i - 1; j >= 0; j--) {
+                numbers[j]++;
+                if (numbers[j] <= 9) break;
+                numbers[j] = 0;
+            }
+        }
+    }
+    return numbers;
+};
+
+setInterval(() => {
+    const updatedNumbers = updateNumbers();
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(updatedNumbers));
+        }
+    });
+}, 1000);
+
+wss.on('connection', ws => {
+    ws.send(JSON.stringify(numbers)); // Send initial state
+    ws.on('message', message => {
+        console.log(`Received message => ${message}`);
+    });
+});
+
+console.log('WebSocket server is running on ws://localhost:8080');
