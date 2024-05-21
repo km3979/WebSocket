@@ -1,9 +1,8 @@
-// wsServer.js
 const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-let numbers = [8, 8, 8, 8, 1, 6, 7, 2];
+let numbers = [8, 8, 8, 8, 8, 1, 6, 7, 2];
 
 const updateNumbers = () => {
     for (let i = numbers.length - 3; i < numbers.length; i++) {
